@@ -4,6 +4,7 @@
 
 {% block content %}
 
+ {% if completed == None %}
 Current
 <ul>
     {% for todo in todoList %}
@@ -19,4 +20,23 @@ Current
     </li>
     {% endfor %}
 </ul>
+{% endif %}
+
+ {% if completed %}
+Completed
+<ul>
+    {% for todo in todoList %}
+    <li>
+    {% if todo.important %} <b>{% endif %}
+    {{todo.title}}
+    {% if todo.important %} </b>{% endif %}
+    {% if todo.description %}
+    - {{todo.description}}
+        {{ todo.datecompleted | date:'M j Y H:i' }}
+    {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
 {% endblock content %}

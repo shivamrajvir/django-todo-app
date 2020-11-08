@@ -1,8 +1,9 @@
+from django.utils import timezone
 from django.db import IntegrityError
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, decorators
 
 # Create your views here.
 from .forms import TodoForm
@@ -48,15 +49,18 @@ def loginuser(request):
                 #A page to route them
             return redirect('currentTodos')
 
+@decorators.login_required
 def logoutuser(request):
     if request.method == 'POST':
         logout(request)
         return redirect('home')
 
+@decorators.login_required
 def currentTodos(request):
     todos = Todo.objects.filter(user=request.user, datecompleted__isnull=True)
     return render(request, 'todo/currenttodos.html', {'todoList': todos})
 
+@decorators.login_required
 def createTodos(request):
     if request.method == 'GET':
         return render(request, 'todo/createTodo.html', {'form': TodoForm()})
@@ -72,9 +76,10 @@ def createTodos(request):
         except ValueError:
             return render(request, 'todo/createTodo.html', {'form': TodoForm(), 'error': 'Bad data passed'})
 
+@decorators.login_required
 def viewTodo(request, todo_pk):
 
-    todo = get_object_or_404(Todo, pk=todo_pk)
+    todo = get_object_or_404(Todo, pk=todo_pk, user=request.user)
 
     if request.method == 'GET':
         form = TodoForm(instance=todo)
@@ -87,3 +92,25 @@ def viewTodo(request, todo_pk):
                 return redirect('currentTodos')
         except ValueError:
             return render(request, 'todo/viewAndEditTodo.html', {'form': TodoForm(), 'error': 'Bad data passed'})
+
+
+@decorators.login_required
+def completeTodo(request, todo_pk):
+    todo = get_object_or_404(Todo, pk=todo_pk, user=request.user)
+
+    if request.method == 'POST':
+        todo.datecompleted = timezone.now()
+        todo.save()
+        return redirect('currentTodos')
+
+@decorators.login_required
+def deleteTodo(request, todo_pk):
+    todo = get_object_or_404(Todo, pk=todo_pk, user=request.user)
+    if request.method == 'POST':
+        todo.delete()
+        return redirect('currentTodos')
+
+@decorators.login_required
+def completedTodo(request):
+    todos = Todo.objects.filter(user=request.user, datecompleted__isnull=False).order_by('-datecompleted')
+    return render(request, 'todo/currenttodos.html', {'todoList': todos, 'completed': True})
