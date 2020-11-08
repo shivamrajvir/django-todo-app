@@ -1,11 +1,12 @@
 from django.db import IntegrityError
-from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 
 # Create your views here.
+from .forms import TodoForm
+from .models import Todo
 
 def home(request):
     return render(request, 'todo/home.html')
@@ -53,4 +54,36 @@ def logoutuser(request):
         return redirect('home')
 
 def currentTodos(request):
-    return render(request, 'todo/currenttodos.html', {'form': UserCreationForm()})
+    todos = Todo.objects.filter(user=request.user, datecompleted__isnull=True)
+    return render(request, 'todo/currenttodos.html', {'todoList': todos})
+
+def createTodos(request):
+    if request.method == 'GET':
+        return render(request, 'todo/createTodo.html', {'form': TodoForm()})
+    elif request.method == 'POST':
+        form = TodoForm(request.POST)
+        try:
+            if form.is_valid():
+                newForm = form.save(commit=False)
+                # map the user where to save
+                newForm.user = request.user
+                newForm.save()
+                return redirect('currentTodos')
+        except ValueError:
+            return render(request, 'todo/createTodo.html', {'form': TodoForm(), 'error': 'Bad data passed'})
+
+def viewTodo(request, todo_pk):
+
+    todo = get_object_or_404(Todo, pk=todo_pk)
+
+    if request.method == 'GET':
+        form = TodoForm(instance=todo)
+        return render(request, 'todo/viewAndEditTodo.html', {'todo': todo, 'form': form})
+    else:
+        try:
+            form = TodoForm(request.POST, instance=todo)
+            if form.is_valid():
+                form.save()
+                return redirect('currentTodos')
+        except ValueError:
+            return render(request, 'todo/viewAndEditTodo.html', {'form': TodoForm(), 'error': 'Bad data passed'})

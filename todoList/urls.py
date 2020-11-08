@@ -27,6 +27,8 @@ path('login/', views.loginuser, name="loginuser"),
 
 
     #todos
-    path('current/', views.currentTodos, name="currentTodos"),
-    path('home/', views.home, name="home")
+    path('', views.home, name="home"),
+path('create/', views.createTodos, name="createTodos"),
+path('current/', views.currentTodos, name="currentTodos"),
+path('todo/<int:todo_pk>', views.viewTodo, name="viewTodo"),
 ]
